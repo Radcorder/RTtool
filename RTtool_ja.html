@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放射線治療ツール</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: Arial, 'Helvetica Neue', Helvetica, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background: #f4f7f6;
+            color: #333333;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        /* 平成後期をイメージした爽やかなグラデーションヘッダー */
+        header {
+            background: linear-gradient(to bottom, #4faddb 0%, #3498db 100%);
+            border-bottom: 3px solid #2980b9;
+            padding: 16px 24px;
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        header h1 { font-size: 1.3em; font-weight: bold; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        header span { font-size: 0.85em; color: #e0f2fe; font-weight: normal; }
+
+        /* Tabs - 立体感のある角丸タブ */
+        .tab-bar {
+            display: flex;
+            background: linear-gradient(to bottom, #f2f5f4 0%, #e4e9e7 100%);
+            padding: 8px 20px 0 20px;
+            gap: 4px;
+            border-bottom: 1px solid #bdc3c7;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: linear-gradient(to bottom, #ffffff 0%, #e2e7e8 100%);
+            border: 1px solid #bdc3c7;
+            border-bottom: none;
+            color: #555555;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            font-family: inherit;
+            transition: all 0.1s ease;
+        }
+        .tab-btn:hover { background: #ffffff; color: #3498db; }
+        .tab-btn.active { 
+            background: #ffffff; 
+            color: #2980b9; 
+            border-bottom: 2px solid #ffffff; 
+            margin-bottom: -1px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Content - 白背景ボックス */
+        .tab-content { 
+            display: none; 
+            padding: 24px; 
+            max-width: 900px; 
+            background: #ffffff;
+            margin: 20px auto;
+            border: 1px solid #dcdcdc;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .tab-content.active { display: block; }
+
+        /* Usage box - 薄いブルーの囲み */
+        .usage-box {
+            background: #eef7fc;
+            border: 1px solid #bce0f2;
+            border-left: 5px solid #3498db;
+            border-radius: 4px;
+            padding: 16px;
+            margin-top: 24px;
+            font-size: 0.88em;
+            line-height: 1.7;
+            color: #444444;
+        }
+        .usage-box strong {
+            display: block;
+            font-size: 0.95em;
+            margin-bottom: 6px;
+            color: #2980b9;
+        }
+        .disclaimer {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #bce0f2;
+            color: #c0392b;
+            font-weight: bold;
+        }
+
+        /* ── INPUT HIGHLIGHT - パステルイエロー ── */
+        .editable-cell {
+            background: #fffde7 !important;
+        }
+        .editable-cell input {
+            background: transparent !important;
+            color: #333333 !important;
+        }
+        input.editable-field {
+            background: #fffde7 !important;
+            color: #333333 !important;
+        }
+
+        /* ══════════ TAB 1: EQD2 & BED ══════════ */
+        .ab-section { margin-bottom: 24px; background: #fafafa; padding: 16px; border: 1px solid #eaeaea; border-radius: 6px; }
+        .ab-label-row {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .ab-hint {
+            font-size: 0.82em;
+            color: #7f8c8d;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ab-hint-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background: #3498db;
+            color: #ffffff;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            font-size: 0.8em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .ab-row {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+        }
+        .ab-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .ab-field label { font-size: 0.85em; color: #555555; font-weight: bold; }
+        .ab-field input {
+            width: 160px;
+            padding: 8px 12px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 1em;
+            text-align: center;
+            font-family: inherit;
+            height: 38px;
+        }
+        .ab-field input:focus, .editable-cell input:focus, input.editable-field:focus { 
+            outline: none; 
+            border-color: #3498db !important; 
+            box-shadow: 0 0 4px rgba(52,152,219,0.3); 
+        }
+
+        /* Tables */
+        table { border-collapse: collapse; width: 100%; }
+        th, td {
+            border: 1px solid #dcdcdc;
+            padding: 10px 12px;
+            text-align: center;
+            font-size: 0.95em;
+        }
+        thead th { 
+            background: linear-gradient(to bottom, #f9f9f9 0%, #e8e8e8 100%);
+            color: #333333; 
+            font-weight: bold; 
+        }
+        tbody tr:nth-child(even) { background: #f9f9f9; }
+        tbody tr:hover { background: #f5fafd; }
+        
+        tbody td:first-child {
+            background: #f7f7f7 !important;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-align: left;
+            padding-left: 16px;
+            color: #444444;
+            width: 200px;
+        }
+        input[type="text"] {
+            width: 100%;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-size: 1em;
+            color: #333333;
+            outline: none;
+            font-family: inherit;
+            padding: 2px 0;
+        }
+        input[readonly] { color: #2980b9; font-weight: bold; cursor: default; }
+
+        /* Button */
+        .calc-btn {
+            padding: 10px 28px;
+            background: linear-gradient(to bottom, #4faddb 0%, #2980b9 100%);
+            color: white;
+            border: 1px solid #2574a5;
+            border-radius: 4px;
+            font-size: 0.95em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .calc-btn:hover { background: #2980b9; }
+        .calc-btn:active { background: #226693; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
+
+        /* ══════════ TAB 2: CALENDAR ══════════ */
+        #tab-calendar .date-selection {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        #tab-calendar label { font-size: 0.95em; font-weight: bold; color: #444444; }
+        #baseDate {
+            font-size: 1em;
+            padding: 6px 10px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            background: #ffffff;
+            color: #333333;
+            font-family: inherit;
+        }
+        .calendar-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dcdcdc;
+            border-radius: 6px;
+        }
+        #tab-calendar table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .weekend td { background: #fdedec !important; color: #c0392b !important; }
+        .holiday td { background: #f5eef8 !important; color: #8e44ad !important; }
+        .business-num { font-weight: bold; color: #2980b9; }
+
+        /* ══════════ TAB 3: CALC ══════════ */
+        #tab-calc table { width: 340px; }
+        #tab-calc td:first-child { width: 100px; text-align: center; padding-left: 12px; }
+        .result-val { color: #2980b9; font-weight: bold; }
+
+        /* ══════════ TAB 4: ABOUT & DOWNLOAD ══════════ */
+        .about-section { margin-bottom: 24px; line-height: 1.8; }
+        .about-section h3 { font-size: 1.1em; color: #2c3e50; margin-bottom: 10px; border-bottom: 2px solid #3498db; padding-bottom: 4px; }
+        .about-section p { font-size: 0.95em; margin-bottom: 12px; color: #444444; }
+        .about-meta { font-size: 0.88em; color: #7f8c8d; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eaeaea; margin-bottom: 20px; }
+        .about-meta div { margin-bottom: 4px; }
+        .about-meta div:last-child { margin-bottom: 0; }
+        .about-meta a { color: #3498db; text-decoration: none; font-weight: bold; }
+        .about-meta a:hover { text-decoration: underline; }
+        
+        .download-box {
+            background: #f5fafd;
+            border: 1px solid #bce0f2;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .download-btn {
+            padding: 12px 32px;
+            background: linear-gradient(to bottom, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            border: 1px solid #219653;
+            border-radius: 4px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .download-btn:hover { background: #27ae60; }
+        .download-btn:active { background: #1e8449; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+
+        @media screen and (max-width: 600px) {
+            .tab-btn { padding: 10px 12px; font-size: 0.82em; }
+            .tab-content { padding: 16px 12px; margin: 10px; }
+            #tab-calc table { width: 100%; }
+            .ab-field input { width: 120px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>放射線治療ツール</h1>
+    <span>Radiation Therapy Tools</span>
+</header>
+
+<div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('bed', this)">EQD2 &amp; BED</button>
+    <button class="tab-btn" onclick="switchTab('calendar', this)">治療日カレンダー</button>
+    <button class="tab-btn" onclick="switchTab('calc', this)">一括計算</button>
+    <button class="tab-btn" onclick="switchTab('about', this)">ツールについて</button>
+</div>
+
+<div id="tab-bed" class="tab-content active">
+    <div class="ab-section">
+        <div class="ab-label-row">α/β 値の設定</div>
+        <div class="ab-hint">
+            <span class="ab-hint-icon">✎</span>
+            黄色いフィールドが入力欄です。値を変更して「計算する」を押してください。
+        </div>
+        <div class="ab-row">
+            <div class="ab-field">
+                <label>α/β ①</label>
+                <input type="text" id="alphaBeta1" class="editable-field" value="2" inputmode="decimal">
+            </div>
+            <div class="ab-field">
+                <label>α/β ②</label>
+                <input type="text" id="alphaBeta2" class="editable-field" value="10" inputmode="decimal">
+            </div>
+        </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculateBED()">計算する</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>項目</th>
+                <th>A</th>
+                <th>B</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Gy/fr</td>
+                <td class="editable-cell"><input type="text" id="gyFr1" placeholder="例: 2.0" inputmode="decimal"></td>
+                <td class="editable-cell"><input type="text" id="gyFr2" placeholder="例: 2.0" inputmode="decimal"></td>
+            </tr>
+            <tr>
+                <td>fr 数</td>
+                <td class="editable-cell"><input type="text" id="fr1" placeholder="例: 25" inputmode="decimal"></td>
+                <td class="editable-cell"><input type="text" id="fr2" placeholder="例: 25" inputmode="decimal"></td>
+            </tr>
+            <tr>
+                <td>Total Gy</td>
+                <td><input type="text" id="totalGy1" readonly></td>
+                <td><input type="text" id="totalGy2" readonly></td>
+            </tr>
+            <tr>
+                <td id="eqd2Label1">EQD2 (α/β=2)</td>
+                <td><input type="text" id="eqd2_1a" readonly></td>
+                <td><input type="text" id="eqd2_2a" readonly></td>
+            </tr>
+            <tr>
+                <td id="eqd2Label2">EQD2 (α/β=10)</td>
+                <td><input type="text" id="eqd2_1b" readonly></td>
+                <td><input type="text" id="eqd2_2b" readonly></td>
+            </tr>
+            <tr>
+                <td id="bedLabel1">BED (α/β=2)</td>
+                <td><input type="text" id="bed1a" readonly></td>
+                <td><input type="text" id="bed2a" readonly></td>
+            </tr>
+            <tr>
+                <td id="bedLabel2">BED (α/β=10)</td>
+                <td><input type="text" id="bed1b" readonly></td>
+                <td><input type="text" id="bed2b" readonly></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="usage-box">
+        <strong>使い方</strong>
+        ① 黄色いセル（α/β①②）に値を設定します（デフォルト: 2 と 10）。<br>
+        ② 治療データ表の黄色いセル（Gy/fr・fr数）に A・B それぞれ入力します。<br>
+        ③「計算する」ボタンを押すと Total Gy・EQD2・BED が自動計算されます。<br>
+        ※ 全角数字で入力した場合、セルから離れたタイミングで自動的に半角に変換されます。
+        <div class="disclaimer">【免責事項】本ツールは学習・研究の補助を目的としたものであり、臨床的判断にあたっては必ずユーザー自身でのダブルチェックを行ってください。本ツールの利用により生じた損害について、開発者は一切の責任を負いません。</div>
+    </div>
+</div>
+
+<div id="tab-calendar" class="tab-content">
+    <div class="date-selection">
+        <label for="baseDate">治療開始日：</label>
+        <input type="date" id="baseDate" onchange="generateCalendar()">
+    </div>
+    <div class="calendar-container">
+        <table id="calendarTable">
+            <thead>
+                <tr>
+                    <th>日付</th>
+                    <th>曜日</th>
+                    <th>治療日数</th>
+                    <th>祝日</th>
+                </tr>
+            </thead>
+            <tbody id="calendarBody"></tbody>
+        </table>
+    </div>
+
+    <div class="usage-box">
+        <strong>使い方</strong>
+        治療開始日を選択すると、以降の日付と治療日数（営業日ベース）が一覧表示されます。土日・祝日は自動でハイライトされ、治療日カウントから除外されます。祝日欄のチェックボックスで個別に変更できます。
+        <div class="disclaimer">※祝日データは2026年時点の法令に基づいています。法改正等で変更される場合があるため、実際のカレンダーと照らし合わせてご確認ください。</div>
+    </div>
+</div>
+
+<div id="tab-calc" class="tab-content">
+    <table>
+        <thead>
+            <tr>
+                <th>割合</th>
+                <th>計算結果</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>120%</td><td class="result-val" id="result_120"></td></tr>
+            <tr><td>110%</td><td class="result-val" id="result_110"></td></tr>
+            <tr><td>107%</td><td class="result-val" id="result_107"></td></tr>
+            <tr><td>105%</td><td class="result-val" id="result_105"></td></tr>
+            <tr class="input-row">
+                <td>100%</td>
+                <td class="editable-cell"><input type="text" id="input_value" placeholder="値を入力" inputmode="decimal"></td>
+            </tr>
+            <tr><td>95%</td><td class="result-val" id="result_95"></td></tr>
+            <tr><td>90%</td><td class="result-val" id="result_90"></td></tr>
+            <tr><td>80%</td><td class="result-val" id="result_80"></td></tr>
+            <tr><td>70%</td><td class="result-val" id="result_70"></td></tr>
+            <tr><td>60%</td><td class="result-val" id="result_60"></td></tr>
+            <tr><td>40%</td><td class="result-val" id="result_40"></td></tr>
+            <tr><td>30%</td><td class="result-val" id="result_30"></td></tr>
+        </tbody>
+    </table>
+
+    <div class="usage-box">
+        <strong>使い方</strong>
+        黄色いセル（100%の行）に基準となる数値を入力すると、各割合に対応した値がリアルタイムで計算されます。全角数字で入力した場合、セルから離れたタイミングで自動的に半角に変換されます。
+    </div>
+</div>
+
+<div id="tab-about" class="tab-content">
+    <div class="about-section">
+        <h3>このツールについて</h3>
+        <p>放射線治療の現場で発生する面倒な「カレンダーのカウント」や「BED/EQD2の計算」「線量割合の算出」を素早くこなすためのツールです。すべての計算はブラウザ（ローカル環境）上で完結し、htmlファイルをダウンロードすればオフラインでも使用できます。</p>
+    </div>
+
+    <div class="about-section">
+        <h3>カスタマイズ・機能追加をしたい方へ</h3>
+        <p>「自分専用の割合を追加したい」「デザインを変えたい」といった要望があれば、以下からHTMLファイルをダウンロードし、好きにカスタマイズしてください。自己責任になりますがAIに投げれば簡単にカスタマイズできると思います。</p>
+
+    </div>
+
+    <div class="about-meta">
+        <div><strong>現在のバージョン:</strong> 1.1.0 (日本語版 / 2026-06 アップデート)</div>
+        <div><strong>祝日データ:</strong> 2026年時点の法令に準拠（2024年〜2035年まで対応）</div>
+        <div><strong>ソースコード管理:</strong> <a href="https://github.com" target="_blank">GitHub リポジトリ</a> (バグ報告や最新の更新確認はこちら)</div>
+    </div>
+
+    <div class="download-box">
+       
+        <button class="download-btn" onclick="downloadSelf()">
+            <span>💾</span> このツール(HTML)をダウンロード
+        </button>
+    </div>
+</div>
+
+<script>
+    /* ── 祝日データ (2024 - 2035) ── */
+    const holidaySet = new Set([
+        "2024-01-01","2024-01-08","2024-02-11","2024-02-12","2024-02-23","2024-03-20","2024-04-29","2024-05-03","2024-05-04","2024-05-05","2024-05-06","2024-07-15","2024-08-11","2024-08-12","2024-09-16","2024-09-22","2024-09-23","2024-10-14","2024-11-03","2024-11-04","2024-11-23",
+        "2025-01-01","2025-01-13","2025-02-11","2025-02-23","2025-02-24","2025-03-20","2025-04-29","2025-05-03","2025-05-04","2025-05-05","2025-05-06","2025-07-21","2025-08-11","2025-09-15","2025-09-23","2025-10-13","2025-11-03","2025-11-23","2025-11-24",
+        "2026-01-01","2026-01-12","2026-02-11","2026-02-23","2026-03-20","2026-04-29","2026-05-03","2026-05-04","2026-05-05","2026-05-06","2026-07-20","2026-08-11","2026-09-21","2026-09-22","2026-09-23","2026-10-12","2026-11-03","2026-11-23",
+        "2027-01-01","2027-01-11","2027-02-11","2027-02-23","2027-03-21","2027-03-22","2027-04-29","2027-05-03","2027-05-04","2027-05-05","2027-07-19","2027-08-11","2027-09-20","2027-09-23","2027-10-11","2027-11-03","2027-11-23",
+        "2028-01-01","2028-01-10","2028-02-11","2028-02-23","2028-03-20","2028-04-29","2028-05-03","2028-05-04","2028-05-05","2028-07-17","2028-08-11","2028-09-18","2028-09-22","2028-10-09","2028-11-03","2028-11-23",
+        "2029-01-01","2029-01-08","2029-02-11","2029-02-12","2029-02-23","2029-03-20","2029-04-29","2029-04-30","2029-05-03","2029-05-04","2029-05-05","2029-07-16","2029-08-11","2029-09-17","2029-09-23","2029-09-24","2029-10-08","2029-11-03","2029-11-23",
+        "2030-01-01","2030-01-14","2030-02-11","2030-02-23","2030-03-20","2030-04-29","2030-05-03","2030-05-04","2030-05-05","2030-05-06","2030-07-15","2030-08-11","2030-08-12","2030-09-16","2030-09-23","2030-10-14","2030-11-03","2030-11-04","2030-11-23",
+        "2031-01-01","2031-01-13","2031-02-11","2031-02-23","2031-02-24","2031-03-21","2031-04-29","2031-05-03","2031-05-04","2031-05-05","2031-05-06","2031-07-21","2031-08-11","2031-09-15","2031-09-23","2031-10-13","2031-11-03","2031-11-23","2031-11-24",
+        "2032-01-01","2032-01-12","2032-02-11","2032-02-23","2032-03-20","2032-04-29","2032-05-03","2032-05-04","2032-05-05","2032-07-19","2032-08-11","2032-09-20","2032-09-21","2032-09-22","2032-10-11","2032-11-03","2032-11-23",
+        "2033-01-01","2033-01-10","2033-02-11","2033-02-23","2033-03-20","2033-03-21","2033-04-29","2033-05-03","2033-05-04","2033-05-05","2033-07-18","2033-08-11","2033-09-19","2033-09-23","2033-10-10","2033-11-03","2033-11-23",
+        "2034-01-01","2034-01-02","2034-01-09","2034-02-11","2034-02-23","2034-03-20","2034-04-29","2034-05-03","2034-05-04","2034-05-05","2034-07-17","2034-08-11","2034-09-18","2034-09-23","2034-10-09","2034-11-03","2034-11-23",
+        "2035-01-01","2035-01-08","2035-02-11","2035-02-12","2035-02-23","2035-03-21","2035-04-29","2035-04-30","2035-05-03","2035-05-04","2035-05-05","2035-07-16","2035-08-11","2035-09-17","2035-09-23","2035-09-24","2035-10-08","2035-11-03","2035-11-23"
+    ]);
+
+    /* ── タブ切り替え ── */
+    function switchTab(name, clickedBtn) {
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(`tab-${name}`).classList.add('active');
+        clickedBtn.classList.add('active');
+    }
+
+    /* ── 全角→半角変換 ── */
+    function toHalfWidth(v) {
+        v = v.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFF10 + 0x30));
+        return v.replace(/．/g, '.').replace(/ー/g, '-').replace(/－/g, '-');
+    }
+
+    function attachBlurHandler(el, callback) {
+        el.addEventListener('blur', () => {
+            el.value = toHalfWidth(el.value);
+            if (callback) callback();
+        });
+    }
+
+    /* ── 一括計算 ── */
+    function calculate() {
+        const rawVal = document.getElementById("input_value").value;
+        const val = parseFloat(rawVal);
+        const percentages = [120, 110, 107, 105, 95, 90, 80, 70, 60, 40, 30];
+
+        for (const p of percentages) {
+            const cell = document.getElementById(`result_${p}`);
+            if (!isNaN(val) && rawVal !== "") {
+                const result = (val * p) / 100;
+                cell.innerHTML = Number(result.toFixed(6)).toString();
+            } else {
+                cell.innerHTML = '';
+            }
+        }
+    }
+
+    /* ── カレンダー生成 ── */
+    function generateCalendar() {
+        const baseDateVal = document.getElementById('baseDate').value;
+        if (!baseDateVal) return;
+
+        const [year, month, day] = baseDateVal.split('-').map(Number);
+        const currentDate = new Date(year, month - 1, day);
+        const calendarBody = document.getElementById('calendarBody');
+        calendarBody.innerHTML = '';
+
+        let businessDays = 0;
+        let totalDays = 0;
+        const dayNames = ['日','月','火','水','木','金','土'];
+
+        while (businessDays < 40 || totalDays < 40) {
+            const row = calendarBody.insertRow(-1);
+            const dateString = formatDate(currentDate);
+            const isHol = holidaySet.has(dateString);
+
+            row.insertCell(-1).textContent = dateString;
+            row.insertCell(-1).textContent = dayNames[currentDate.getDay()];
+
+            const bdCell = row.insertCell(-1);
+            if (isBusinessDayFn(currentDate, dateString)) {
+                businessDays++;
+                const span = document.createElement('span');
+                span.className = 'business-num';
+                span.textContent = businessDays;
+                bdCell.appendChild(span);
+            } else {
+                bdCell.textContent = '-';
+            }
+
+            const holidayCell = row.insertCell(-1);
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = isHol;
+            cb.addEventListener('click', () => {
+                if (cb.checked) holidaySet.add(dateString);
+                else holidaySet.delete(dateString);
+                generateCalendar();
+            });
+            holidayCell.appendChild(cb);
+
+            updateRowStyle(row, currentDate.getDay(), isHol);
+
+            currentDate.setDate(currentDate.getDate() + 1);
+            totalDays++;
+        }
+    }
+
+    function updateRowStyle(row, dayOfWeek, isHol) {
+        row.className = '';
+        if (isHol) row.classList.add('holiday');
+        else if (dayOfWeek === 0 || dayOfWeek === 6) row.classList.add('weekend');
+    }
+
+    function isBusinessDayFn(date, dateString) {
+        const day = date.getDay();
+        return day !== 0 && day !== 6 && !holidaySet.has(dateString);
+    }
+
+    function formatDate(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    /* ── BED / EQD2 計算 ── */
+    function calculateBED() {
+        const ab1 = parseFloat(document.getElementById("alphaBeta1").value);
+        const ab2 = parseFloat(document.getElementById("alphaBeta2").value);
+        if (isNaN(ab1) || isNaN(ab2)) { alert('α/β の値を正しく入力してください。'); return; }
+
+        document.getElementById("eqd2Label1").textContent = `EQD2 (α/β=${ab1})`;
+        document.getElementById("eqd2Label2").textContent = `EQD2 (α/β=${ab2})`;
+        document.getElementById("bedLabel1").textContent  = `BED (α/β=${ab1})`;
+        document.getElementById("bedLabel2").textContent  = `BED (α/β=${ab2})`;
+
+        const gf1 = parseFloat(document.getElementById("gyFr1").value) || 0;
+        const f1  = parseFloat(document.getElementById("fr1").value)  || 0;
+        const gf2 = parseFloat(document.getElementById("gyFr2").value) || 0;
+        const f2  = parseFloat(document.getElementById("fr2").value)  || 0;
+
+        const results = {
+            totalGy1: gf1 * f1,
+            totalGy2: gf2 * f2,
+            eqd2_1a: (gf1 * f1 * (gf1 + ab1)) / (2 + ab1),
+            eqd2_1b: (gf1 * f1 * (gf1 + ab2)) / (2 + ab2),
+            bed1a: gf1 * f1 * (1 + gf1 / ab1),
+            bed1b: gf1 * f1 * (1 + gf1 / ab2),
+            eqd2_2a: (gf2 * f2 * (gf2 + ab1)) / (2 + ab1),
+            eqd2_2b: (gf2 * f2 * (gf2 + ab2)) / (2 + ab2),
+            bed2a: gf2 * f2 * (1 + gf2 / ab1),
+            bed2b: gf2 * f2 * (1 + gf2 / ab2)
+        };
+
+        for (const [id, value] of Object.entries(results)) {
+            document.getElementById(id).value = value > 0 ? value.toFixed(2) : '';
+        }
+    }
+
+    /* ── 自分自身のHTMLソースコードを動的にパッキングしてローカル保存する処理 ── */
+    function downloadSelf() {
+        // ドキュメント全体のHTML構造を取得
+        const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        
+        // Blobオブジェクトを作成 (MIMEタイプを text/html に指定)
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+        
+        // 一時的なダウンロード用リンク要素の作成
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "RTtool.html"); // 保存時のデフォルトファイル名
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url); // メモリの解放
+        }
+    }
+
+    /* ── 初期化 ── */
+    function init() {
+        const today = new Date();
+        document.getElementById('baseDate').value = formatDate(today);
+        generateCalendar();
+
+        const calcInput = document.getElementById('input_value');
+        calcInput.addEventListener('input', calculate);
+        attachBlurHandler(calcInput, calculate);
+
+        const bedIds = ['alphaBeta1', 'alphaBeta2', 'gyFr1', 'gyFr2', 'fr1', 'fr2'];
+        for (const id of bedIds) {
+            attachBlurHandler(document.getElementById(id), null);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
